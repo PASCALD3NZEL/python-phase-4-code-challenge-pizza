@@ -20,6 +20,58 @@ db.init_app(app)
 api = Api(app)
 
 
+@app.route("/restaurants", methods=["GET"])
+def restaurants():
+    restaurants = Restaurant.query.all()
+    return [restaurant.to_dict(rules=('-restaurant_pizzas',)) for restaurant in restaurants], 200
+
+
+@app.route("/restaurants/<int:id>", methods=["GET"])
+def restaurant_by_id(id):
+    restaurant = Restaurant.query.filter(Restaurant.id == id).first()
+    
+    if restaurant:
+        return restaurant.to_dict(rules=('restaurant_pizzas',)), 200
+    else:
+        return {"error": "Restaurant not found"}, 404
+
+
+@app.route("/restaurants/<int:id>", methods=["DELETE"])
+def delete_restaurant(id):
+    restaurant = Restaurant.query.filter(Restaurant.id == id).first()
+    
+    if restaurant:
+        db.session.delete(restaurant)
+        db.session.commit()
+        return "", 204
+    else:
+        return {"error": "Restaurant not found"}, 404
+
+
+@app.route("/pizzas", methods=["GET"])
+def pizzas():
+    pizzas = Pizza.query.all()
+    return [pizza.to_dict(rules=('-restaurant_pizzas',)) for pizza in pizzas], 200
+
+
+@app.route("/restaurant_pizzas", methods=["POST"])
+def create_restaurant_pizza():
+    try:
+        restaurant_pizza = RestaurantPizza(
+            price=request.json["price"],
+            pizza_id=request.json["pizza_id"],
+            restaurant_id=request.json["restaurant_id"]
+        )
+        db.session.add(restaurant_pizza)
+        db.session.commit()
+        
+        return restaurant_pizza.to_dict(), 201
+    except ValueError as e:
+        return {"errors": ["validation errors"]}, 400
+    except Exception as e:
+        return {"errors": ["validation errors"]}, 400
+
+
 @app.route("/")
 def index():
     return "<h1>Code challenge</h1>"
